@@ -1,0 +1,52 @@
+Step 1 — Install Let’s Encrypt Certbot
+Let’s Encrypt provides CLI namely Certbot to generate the certificate
+
+$ sudo apt install certbot
+
+Step 2 — Generate new certificate using Certbot
+The command to generate the cert is relatively simple. You can do for
+single domain, for multiple domains then just needs to append -d
+DOMAIN. In this case I used *.DOMAIN so that the certificate can be used
+for subdomain as well. The wizard will ask for a few simple
+information.
+
+$ sudo certbot certonly --manual --preferred-challenges dns -d "*.DOMAIN"
+
+Step3 — Setting DNS TXT ACME Challenge in Namecheap
+Once Y is entered in the previous step, Certbot will revert with ACME
+challenge token to be configured in DNS provider to allow verification.
+Copy the token and insert as TXT record in DNS console of
+Namecheap.
+Please set TTL to 1 minute to allow Top-level DNS servers to pick up
+this new subdomain — _acme-challenge.DOMAIN. You can verify this DNS
+TXT record using nslookup before proceed with verification.
+nslookup -type=TXT _acme-challenge.DOMAIN
+
+Step 4 — Verify the domain challenge
+Press Enter and Certbot will continue with the verification process.
+
+Step 5 — Retrieve the certificate
+You will hit permission error when trying to retrieve the file. This is
+due to folder permission of /etc/letsencrypt/liveis set to root.
+Therefore we can set permission to allow other users to read via sudo
+
+$ chmod +x /etc/letsencrypt/live
+
+After that you can extract the fullchain.pem and privkey.pem for ingress
+/ route / web server configuration.
+
+Step 6 — Renew the certificate
+Use command : 
+
+$ certbot renew
+
+Step 7 — Convert the certificate to keystore
+
+$ cd /etc/letsencrypt/live/dev1.<domain-name>.com
+$ sudo openssl pkcs12 -export -in fullchain.pem -inkey privkey.pem -out KEYSTORE.p12 -name dev1
+
+Step 8 — Import keystore in wildfly
+Insert below configuration in standalone.xml
+
+<keystore path="KEYSTORE.p12" relative-to="jboss.server.config.dir" keystore-password="abc@321"
+alias="dev1"/>
